@@ -44,10 +44,6 @@ class Config:
                 X, Y, Z = int(vals[0]), int(vals[1]), int(vals[2])
                 done = 1
         return X, Y, Z
-
-    def set_LP(self, LP):
-        """ Sets the LP file for the user's input """
-        self.LP = LP
     
     def demands(self):
         """ Creates a table of demand volumes """
@@ -81,6 +77,18 @@ class LP_File:
     def __repr__(self):
         """ Returns a string representation of the generated LP file """
         return '\n'.join(self.LP)
+    
+    def generate(self, function, constraints, bounds):
+        """ Generates an LP file """
+        self.LP.append(f'Minimize')
+        self.LP.append(f'    {function}')
+        self.LP.append(f'Subject to')
+        for constraint in constraints:
+            self.LP.append(f'    {constraint}')
+        self.LP.append(f'Bounds')
+        for bound in bounds:
+            self.LP.append(f'    {bound}')
+        self.LP.append(f'End')
 
 def main():
     """ Starts the program and runs support scripts """
@@ -95,15 +103,33 @@ def main():
     
     # Call LP file generation function here
     LP = LP_File()
-    config.set_LP(LP)
-    print(f'LP file is:\n{config.LP if config.LP.LP else "    EMPTY LP FILE"}')
+    
+    function = f'5 x12 + 12 x132' # Debug Variable
+    constraints = ['demandflow: x12 + x132 = 17', 'capp1: x12 <= 10', 'capp2: x132 <= 12'] # Debug Variable
+    bounds = ['0 <= x12', '0 <= x132'] # Debug Variable
+    
+    LP.generate(function, constraints, bounds)
+    
+    print(f'LP file is:\n{LP if LP else "    EMPTY LP FILE"}')
+    
+    done = 0
+    while not done:
+        try:
+            file = open('tm.lp', 'w')
+            file.write(str(LP))
+            file.close()
+            done = 1
+        except:
+            print(f'LP file failed to write, trying again...')
+            time.sleep(1)
     
     start_time = time.time()
     CPLEX_done = 0 # Debug variable
     
     # Call CPLEX here
-    
+    #
     #CPLEX_done = 1
+    #
     
     # Find the CPLEX execution time
     end_time = f'{time.time() - start_time:.4f}'
