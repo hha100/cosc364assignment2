@@ -155,7 +155,7 @@ class LP_File:
             u_list = [value[1] for value in self.config.paths[(i, j)]]
             for index in range(len(x_list)):
                 rhs = int(self.config.demands[i-1][j-1]) / 2
-                constraints.append(f'{x_list[index]} = {rhs} * {u_list[index]}')
+                constraints.append(f'{x_list[index]} = {rhs} {u_list[index]}')
         
         # Generate c capacity constraints
         for (i, j) in self.config.paths.keys():
@@ -164,7 +164,7 @@ class LP_File:
             con_list = []
             for index in range(len(x_list)):
                 con_list.append(f'{x_list[index]} {u_list[index]}')
-            constraints.append(' + '.join(con_list) + f' <= 100 * r')
+            constraints.append(' + '.join(con_list) + f' <= 100 r')
         
         # Generate d capacity constraints
         for (k, j) in self.config.d_links.keys():
@@ -173,7 +173,7 @@ class LP_File:
             con_list = []
             for index in range(len(x_list)):
                 con_list.append(f'{x_list[index]} {u_list[index]}')
-            constraints.append(' + '.join(con_list) + f' <= 100 * r')
+            constraints.append(' + '.join(con_list) + f' <= 100 r')
         
         return constraints
     
