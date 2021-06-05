@@ -115,7 +115,7 @@ class LP_File:
         """ Returns a string representation of the generated LP file """
         return '\n'.join(self.LP)
     
-    def generate_LP(self, function, constraints, bounds):
+    def generate_LP(self, function, constraints, bounds, binaries):
         """ Generates an LP file """
         self.LP.append(f'Minimize')
         self.LP.append(f'    {function}')
@@ -125,6 +125,9 @@ class LP_File:
         self.LP.append(f'Bounds')
         for bound in bounds:
             self.LP.append(f'    {bound}')
+        self.LP.append(f'Binary')
+        for binary in binaries:
+            self.LP.append(f'    {binary}')
         self.LP.append(f'End')
 
     def generate_function(self):
@@ -133,16 +136,20 @@ class LP_File:
     
     def generate_constraints(self):
         constraints = []
+        
+        # Generate x variable constraints
         for (i, j) in self.config.paths.keys():
             x_list = [value[0] for value in self.config.paths[(i, j)]]
             h_k = self.config.demands[i-1][j-1]
             constraints.append(' + '.join(x_list) + f' = {h_k}')
         
+        # Generate u variables constraints
         for (i, j) in self.config.paths.keys():
             u_list = [value[1] for value in self.config.paths[(i, j)]]
             n_k = 2
             constraints.append(' + '.join(u_list) + f' = {n_k}')
-    
+        
+        # Generate flow equality constraints
         for (i, j) in self.config.paths.keys():
             x_list = [value[0] for value in self.config.paths[(i, j)]]
             u_list = [value[1] for value in self.config.paths[(i, j)]]
@@ -150,7 +157,23 @@ class LP_File:
                 rhs = int(self.config.demands[i-1][j-1]) / 2
                 constraints.append(f'{x_list[index]} = {rhs} * {u_list[index]}')
         
+        # Generate c capacity constraints
+        for (i, j) in self.config.paths.keys():
+            x_list = [value[0] for value in self.config.paths[(i, j)]]
+            u_list = [value[1] for value in self.config.paths[(i, j)]]
+            con_list = []
+            for index in range(len(x_list)):
+                con_list.append(f'{x_list[index]} {u_list[index]}')
+            constraints.append(' + '.join(con_list) + f' <= 100 * r')
         
+        # Generate d capacity constraints
+        for (k, j) in self.config.d_links.keys():
+            x_list = [value[0] for value in self.config.d_links[(k, j)]]
+            u_list = [value[1] for value in self.config.d_links[(k, j)]]
+            con_list = []
+            for index in range(len(x_list)):
+                con_list.append(f'{x_list[index]} {u_list[index]}')
+            constraints.append(' + '.join(con_list) + f' <= 100 * r')
         
         return constraints
     
@@ -159,16 +182,19 @@ class LP_File:
         for x_dec_var in self.config.x_var_list:
             bounds.append(f'{x_dec_var} >= 0')
     
-        for u_dec_var in self.config.u_var_list:
-            str1 = '{0,1}'
-            bounds.append(f'{u_dec_var} = {str1}')
-        
+        #for u_dec_var in self.config.u_var_list:
+            #bounds.append(f'{u_dec_var} = {"{0, 1}"}')
         
         bounds.append(f'r >= 0')
         bounds.append(f'r <= 1')
         return bounds
     
-    
+    def generate_binaries(self):
+        binaries = []
+        for u_dec_var in self.config.u_var_list:
+            binaries.append(f'{u_dec_var}')
+        return binaries
+        
     
 def main():
     """ Starts the program and runs support scripts """
@@ -187,12 +213,13 @@ def main():
     function = LP.generate_function()
     constraints = LP.generate_constraints()
     bounds = LP.generate_bounds()
+    binaries = LP.generate_binaries()
     
     #function = f'5 x12 + 12 x132' # Debug Variable
     #constraints = ['demandflow: x12 + x132 = 17', 'capp1: x12 <= 10', 'capp2: x132 <= 12'] # Debug Variable
     #bounds = ['0 <= x12', '0 <= x132'] # Debug Variable
     
-    LP.generate_LP(function, constraints, bounds)
+    LP.generate_LP(function, constraints, bounds, binaries)
     
     print(f'LP file is:\n{LP if LP else "    EMPTY LP FILE"}')
     
