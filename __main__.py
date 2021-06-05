@@ -51,21 +51,34 @@ class Config:
         self.Z = Z
     
     def decision_vars(self):
-        """ Creates a list of decision variables and a dictionary of the different flows from source i to destination j """
-        self.paths = dict()
-        self.c_links = dict()
-        self.d_links = dict()
-        self.x_var_list = []
-        self.u_var_list = []
+        """ Creates a list of decision variables and dictionaries of the different flows from source i to destination j """
+        self.paths, self.c_links, self.d_links, self.x_var_list, self.u_var_list = dict(), dict(), dict(), [], []
+        
         for i in range(1, self.X+1):
             for k in range(1, self.Y+1):
                 for j in range(1, self.Z+1):
-                    self.x_var_list.append(f'x{i}{k}{j}')
+                    # Create 'x' and 'u' variables for the path
+                    x_var, u_var = (f'x{i}{k}{j}', f'u{i}{k}{j}')
+                    self.x_var_list.append(x_var)
                     self.u_var_list.append(f'u{i}{k}{j}')
+
+                    # Add this path from source node to destination node to the path dictionary                    
                     if (i, j) not in self.paths.keys():
-                        self.paths[(i, j)] = [f'x{i}{k}{j}']
+                        self.paths[(i, j)] = [(x_var, u_var)]
                     else:
-                        self.paths[(i, j)] += [f'x{i}{k}{j}']
+                        self.paths[(i, j)] += [(x_var, u_var)]
+                    
+                    # Add this paths link from source node to transit node to the d capacity dictionary                    
+                    if (i, k) not in self.c_links.keys():
+                        self.c_links[(i, k)] = [(x_var, u_var)]
+                    else:
+                        self.c_links[(i, k)] += [(x_var, u_var)]
+                    
+                    # Add this paths link from transit node to destination node to the d capacity dictionary
+                    if (k, j) not in self.d_links.keys():
+                        self.d_links[(k, j)] = [(x_var, u_var)]
+                    else:
+                        self.d_links[(k, j)] += [(x_var, u_var)]                   
         #print(self.x_var_list)
     
     def demands(self):
@@ -80,15 +93,15 @@ class Config:
         print()
     
     def capacities(self):
-        """ Creates arbitrary tables of link capacitances """
-        self.Cik = []
-        self.Dkj = []
+        """ Creates tables of arbitrary link capacitances """
+        self.c_capp = []
+        self.d_capp = []
         
         for i in range(self.X):
-            self.Cik.append([1000 for k in range(self.Y)])
+            self.c_capp.append([1000 for k in range(self.Y)])
         
         for k in range(self.Y):
-            self.Dkj.append([1000 for j in range(self.Z)])
+            self.d_capp.append([1000 for j in range(self.Z)])
     
 
 class LP_File:
@@ -121,9 +134,21 @@ class LP_File:
     def generate_constraints(self):
         constraints = []
         for (i, j) in self.config.paths.keys():
-            sum1 = [value for value in self.config.paths[(i, j)]]
+            x_list = [value[0] for value in self.config.paths[(i, j)]]
             h_k = self.config.demands[i-1][j-1]
-            constraints.append(' + '.join(sum1) + f' = {h_k}')
+            constraints.append(' + '.join(x_list) + f' = {h_k}')
+        
+        for (i, j) in self.config.paths.keys():
+            u_list = [value[1] for value in self.config.paths[(i, j)]]
+            n_k = 2
+            constraints.append(' + '.join(u_list) + f' = {n_k}')
+    
+        for (i, j) in self.config.paths.keys():
+            x_list = [value[0] for value in self.config.paths[(i, j)]]
+            u_list = [value[1] for value in self.config.paths[(i, j)]]
+            for index in range(len(x_list)):
+                rhs = int(self.config.demands[i-1][j-1]) / 2
+                constraints.append(f'{x_list[index]} = {rhs} * {u_list[index]}')
         
         
         
@@ -131,12 +156,15 @@ class LP_File:
     
     def generate_bounds(self):
         bounds = []
-        for dec_var in self.config.x_var_list:
-            bounds.append(f'0 <= {dec_var}')
+        for x_dec_var in self.config.x_var_list:
+            bounds.append(f'{x_dec_var} >= 0')
+    
+        for u_dec_var in self.config.u_var_list:
+            str1 = '{0,1}'
+            bounds.append(f'{u_dec_var} = {str1}')
         
         
-        
-        bounds.append(f'0 <= r')
+        bounds.append(f'r >= 0')
         bounds.append(f'r <= 1')
         return bounds
     
