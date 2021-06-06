@@ -92,17 +92,6 @@ class Config:
             print(f'    {line}')
         print()
     
-    def capacities(self):
-        """ Creates tables of arbitrary link capacitances """
-        self.c_capp = []
-        self.d_capp = []
-        
-        for i in range(self.X):
-            self.c_capp.append([1000 for k in range(self.Y)])
-        
-        for k in range(self.Y):
-            self.d_capp.append([1000 for j in range(self.Z)])
-    
 
 class LP_File:
     
@@ -155,7 +144,7 @@ class LP_File:
             u_list = [value[1] for value in self.config.paths[(i, j)]]
             for index in range(len(x_list)):
                 rhs = int(self.config.demands[i-1][j-1]) / 2
-                constraints.append(f'{x_list[index]} = {rhs} {u_list[index]}')
+                constraints.append(f'{x_list[index]} - {rhs} {u_list[index]} = 0')
         
         # Generate c capacity constraints
         for (i, j) in self.config.paths.keys():
@@ -164,7 +153,7 @@ class LP_File:
             con_list = []
             for index in range(len(x_list)):
                 con_list.append(f'{x_list[index]} {u_list[index]}')
-            constraints.append(' + '.join(con_list) + f' <= 100 r')
+            constraints.append(' + '.join(con_list) + f' - 10 r <= 0')
         
         # Generate d capacity constraints
         for (k, j) in self.config.d_links.keys():
@@ -173,7 +162,7 @@ class LP_File:
             con_list = []
             for index in range(len(x_list)):
                 con_list.append(f'{x_list[index]} {u_list[index]}')
-            constraints.append(' + '.join(con_list) + f' <= 100 r')
+            constraints.append(' + '.join(con_list) + f' - 10 r <= 0')
         
         return constraints
     
@@ -185,8 +174,7 @@ class LP_File:
         #for u_dec_var in self.config.u_var_list:
             #bounds.append(f'{u_dec_var} = {"{0, 1}"}')
         
-        bounds.append(f'r >= 0')
-        bounds.append(f'r <= 1')
+        bounds.append(f'0 <= r <= 1')
         return bounds
     
     def generate_binaries(self):
@@ -203,9 +191,6 @@ def main():
     
     # Generate a table of demand volumes
     config.demands()
-    
-    # Generate an arbirary list of link capacities
-    config.capacities()
     
     # Call LP file generation function here
     LP = LP_File(config)
