@@ -45,7 +45,7 @@ class Config:
     
     def decision_vars(self):
         """ Creates a list of decision variables and dictionaries of the different flows from source i to destination j """
-        self.paths, self.c_links, self.d_links, self.x_var_list, self.u_var_list = dict(), dict(), dict(), [], []
+        self.paths, self.paths_per_node, self.x_var_list, self.u_var_list = dict(), dict(), [], []
         for i in range(1, self.X+1):
             for k in range(1, self.Y+1):
                 for j in range(1, self.Z+1):
@@ -59,15 +59,10 @@ class Config:
                     else:
                         self.paths[(i, j)] += [(x_var, u_var)]
                     # Add this paths link from source node to transit node to the d capacity dictionary                    
-                    if (i, k) not in self.c_links.keys():
-                        self.c_links[(i, k)] = [(x_var, u_var)]
+                    if (k) not in self.paths_per_node.keys():
+                        self.paths_per_node[(k)] = [(x_var, u_var)]
                     else:
-                        self.c_links[(i, k)] += [(x_var, u_var)]
-                    # Add this paths link from transit node to destination node to the d capacity dictionary
-                    if (k, j) not in self.d_links.keys():
-                        self.d_links[(k, j)] = [(x_var, u_var)]
-                    else:
-                        self.d_links[(k, j)] += [(x_var, u_var)]
+                        self.paths_per_node[(k)] += [(x_var, u_var)]
     
     def demands(self):
         """ Creates a table of demand volumes """
@@ -147,18 +142,9 @@ class LP_File:
             constraints.append(' + '.join(con_list) + f' = {self.config.demands[i-1][j-1]}')
         constraints.append(' ')
         
-        for (i, k) in self.config.c_links.keys():
-            x_list = [value[0] for value in self.config.c_links[(i, k)]]
-            u_list = [value[1] for value in self.config.c_links[(i, k)]]
-            con_list = []
-            for index in range(len(x_list)):
-                con_list.append(f'{x_list[index]} {u_list[index]}')
-            constraints.append(' + '.join(con_list) + f' - r <= 0')
-        constraints.append(' ')
-        
-        for (k, j) in self.config.d_links.keys():
-            x_list = [value[0] for value in self.config.d_links[(k, j)]]
-            u_list = [value[1] for value in self.config.d_links[(k, j)]]
+        for (k) in self.config.paths_per_node.keys():
+            x_list = [value[0] for value in self.config.paths_per_node[(k)]]
+            u_list = [value[1] for value in self.config.paths_per_node[(k)]]
             con_list = []
             for index in range(len(x_list)):
                 con_list.append(f'{x_list[index]} {u_list[index]}')
