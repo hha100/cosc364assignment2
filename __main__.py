@@ -131,12 +131,16 @@ class LP_File:
             x_list = [value[0] for value in self.config.paths[(i, j)]]
             h_k = self.config.demands[i-1][j-1]
             constraints.append(' + '.join(x_list) + f' = {h_k}')
+    
+        constraints.append(' ')        
         
         # Generate u variables constraints
         for (i, j) in self.config.paths.keys():
             u_list = [value[1] for value in self.config.paths[(i, j)]]
             n_k = 2
             constraints.append(' + '.join(u_list) + f' = {n_k}')
+    
+        constraints.append(' ')       
         
         # Generate flow equality constraints
         for (i, j) in self.config.paths.keys():
@@ -146,6 +150,20 @@ class LP_File:
                 rhs = int(self.config.demands[i-1][j-1]) / 2
                 constraints.append(f'{x_list[index]} - {rhs} {u_list[index]} = 0')
         
+        constraints.append(' ')
+        
+        # TEST
+        for (i, j) in self.config.paths.keys():
+            x_list = [value[0] for value in self.config.paths[(i, j)]]
+            u_list = [value[1] for value in self.config.paths[(i, j)]]
+            con_list = []
+            for index in range(len(x_list)):
+                con_list.append(f'{x_list[index]} {u_list[index]}')
+            constraints.append(' + '.join(con_list) + f' = {self.config.demands[i-1][j-1]}')
+        # TEST
+
+        constraints.append(' ')
+        
         # Generate c capacity constraints
         for (i, j) in self.config.paths.keys():
             x_list = [value[0] for value in self.config.paths[(i, j)]]
@@ -153,7 +171,9 @@ class LP_File:
             con_list = []
             for index in range(len(x_list)):
                 con_list.append(f'{x_list[index]} {u_list[index]}')
-            constraints.append(' + '.join(con_list) + f' - 10 r <= 0')
+            constraints.append(' + '.join(con_list) + f' - r <= 0')
+        
+        constraints.append(' ')
         
         # Generate d capacity constraints
         for (k, j) in self.config.d_links.keys():
@@ -162,7 +182,9 @@ class LP_File:
             con_list = []
             for index in range(len(x_list)):
                 con_list.append(f'{x_list[index]} {u_list[index]}')
-            constraints.append(' + '.join(con_list) + f' - 10 r <= 0')
+            constraints.append(' + '.join(con_list) + f' - r <= 0')
+        
+        constraints.append(' ')
         
         return constraints
     
@@ -174,7 +196,7 @@ class LP_File:
         #for u_dec_var in self.config.u_var_list:
             #bounds.append(f'{u_dec_var} = {"{0, 1}"}')
         
-        bounds.append(f'0 <= r <= 1')
+        bounds.append(f'r >= 0')
         return bounds
     
     def generate_binaries(self):
