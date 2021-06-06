@@ -173,7 +173,7 @@ def main():
     for index1 in range(len(config.demand_volumes)):
         for index2 in range(len(config.demand_volumes[0])):
             sum1 += config.demand_volumes[index1][index2]
-    print(f'\nTotal Demand Volume:\n    {sum1}\nAverage Flow Expected:\n    {sum1/config.Y}')    
+    print(f'Total Demand Volume:\n    {sum1}\nAverage Flow Expected:\n    {sum1/config.Y}\n')    
     
     LP = LP_File(config)
     function = LP.generate_function()
@@ -181,7 +181,7 @@ def main():
     bounds = LP.generate_bounds()
     binaries = LP.generate_binaries()
     LP.generate_LP(function, constraints, bounds, binaries)
-    print(f'LP file is:\n{LP if LP else "    EMPTY LP FILE"}')
+    #print(f'LP file is:\n{LP if LP else "    EMPTY LP FILE"}')
     
     
     
