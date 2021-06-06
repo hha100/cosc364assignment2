@@ -2,7 +2,7 @@
 Flow Planning
 
 Authors: Henry Hay-Smith and Rory Patterson
-Date: 26/05/2021 """
+Date: 06/06/2021 """
 
 import sys
 import time
@@ -66,18 +66,13 @@ class Config:
     
     def demands(self):
         """ Creates a table of demand volumes """
-        self.demands = []
+        self.demand_volumes = []
         for i in range(self.X):
-            self.demands.append([i+j+2 for j in range(self.Z)])
+            self.demand_volumes.append([i+j+2 for j in range(self.Z)])
         print(f'Demand Volume Table:')
-        for line in self.demands:
+        for line in self.demand_volumes:
             print(f'    {line}')
         print()
-
-
-
-
-
 
 
 class LP_File:
@@ -113,7 +108,7 @@ class LP_File:
         
         for (i, j) in self.config.paths.keys():
             x_list = [value[0] for value in self.config.paths[(i, j)]]
-            h_k = self.config.demands[i-1][j-1]
+            h_k = self.config.demand_volumes[i-1][j-1]
             constraints.append(' + '.join(x_list) + f' = {h_k}')
         constraints.append(' ')
         
@@ -123,15 +118,18 @@ class LP_File:
             constraints.append(' + '.join(u_list) + f' = {n_k}')
         constraints.append(' ')
         
-        
-        
         for (i, j) in self.config.paths.keys():
             x_list = [value[0] for value in self.config.paths[(i, j)]]
             u_list = [value[1] for value in self.config.paths[(i, j)]]
             for index in range(len(x_list)):
-                rhs = int(self.config.demands[i-1][j-1]) / 2
+                rhs = int(self.config.demand_volumes[i-1][j-1]) / 2
                 constraints.append(f'{x_list[index]} - {rhs} {u_list[index]} = 0')
         constraints.append(' ')
+        
+        
+        
+        
+        
         
         for (i, j) in self.config.paths.keys():
             x_list = [value[0] for value in self.config.paths[(i, j)]]
@@ -139,7 +137,7 @@ class LP_File:
             con_list = []
             for index in range(len(x_list)):
                 con_list.append(f'{x_list[index]} {u_list[index]}')
-            constraints.append(' + '.join(con_list) + f' = {self.config.demands[i-1][j-1]}')
+            constraints.append(' + '.join(con_list) + f' = {self.config.demand_volumes[i-1][j-1]}')
         constraints.append(' ')
         
         for (k) in self.config.paths_per_node.keys():
@@ -159,9 +157,6 @@ class LP_File:
         bounds.append(f'r >= 0')
         return bounds
     
-    
-    
-    
     def generate_binaries(self):
         binaries = ""
         for u_dec_var in self.config.u_var_list:
@@ -172,7 +167,14 @@ def main():
     """ Starts the program and runs support scripts """
     config = Config()
     print(f'\nInputs Accepted:\n    {config}\n')
+    
     config.demands()
+    sum1 = 0
+    for index1 in range(len(config.demand_volumes)):
+        for index2 in range(len(config.demand_volumes[0])):
+            sum1 += config.demand_volumes[index1][index2]
+    print(f'\nTotal Demand Volume:\n    {sum1}\nAverage Flow Expected:\n    {sum1/config.Y}')    
+    
     LP = LP_File(config)
     function = LP.generate_function()
     constraints = LP.generate_constraints()
@@ -180,6 +182,9 @@ def main():
     binaries = LP.generate_binaries()
     LP.generate_LP(function, constraints, bounds, binaries)
     print(f'LP file is:\n{LP if LP else "    EMPTY LP FILE"}')
+    
+    
+    
     done = 0
     while not done:
         try:
