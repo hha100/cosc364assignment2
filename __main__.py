@@ -1,23 +1,13 @@
-"""
-COSC364 Assignment 2
+""" COSC364 Assignment 2
 Flow Planning
 
 Authors: Henry Hay-Smith and Rory Patterson
-Date: 26/05/2021
-
-__main__.py is run by default when naming the directory in the command line, meaning you don't need to specify
-which file you want to run
-e.g. 'py src'
-
-"""
-
+Date: 26/05/2021 """
 
 import sys
 import time
 
-
 class Config:
-    
     def __init__(self):
         """ Initialises the X, Y, and Z values """
         self.inputs()
@@ -50,10 +40,12 @@ class Config:
         self.Y = Y
         self.Z = Z
     
+    
+    
+    
     def decision_vars(self):
         """ Creates a list of decision variables and dictionaries of the different flows from source i to destination j """
         self.paths, self.c_links, self.d_links, self.x_var_list, self.u_var_list = dict(), dict(), dict(), [], []
-        
         for i in range(1, self.X+1):
             for k in range(1, self.Y+1):
                 for j in range(1, self.Z+1):
@@ -61,40 +53,39 @@ class Config:
                     x_var, u_var = (f'x{i}{k}{j}', f'u{i}{k}{j}')
                     self.x_var_list.append(x_var)
                     self.u_var_list.append(f'u{i}{k}{j}')
-
                     # Add this path from source node to destination node to the path dictionary                    
                     if (i, j) not in self.paths.keys():
                         self.paths[(i, j)] = [(x_var, u_var)]
                     else:
                         self.paths[(i, j)] += [(x_var, u_var)]
-                    
                     # Add this paths link from source node to transit node to the d capacity dictionary                    
                     if (i, k) not in self.c_links.keys():
                         self.c_links[(i, k)] = [(x_var, u_var)]
                     else:
                         self.c_links[(i, k)] += [(x_var, u_var)]
-                    
                     # Add this paths link from transit node to destination node to the d capacity dictionary
                     if (k, j) not in self.d_links.keys():
                         self.d_links[(k, j)] = [(x_var, u_var)]
                     else:
-                        self.d_links[(k, j)] += [(x_var, u_var)]                   
-        #print(self.x_var_list)
+                        self.d_links[(k, j)] += [(x_var, u_var)]
     
     def demands(self):
         """ Creates a table of demand volumes """
         self.demands = []
         for i in range(self.X):
             self.demands.append([i+j+2 for j in range(self.Z)])
-        
         print(f'Demand Volume Table:')
         for line in self.demands:
             print(f'    {line}')
         print()
-    
+
+
+
+
+
+
 
 class LP_File:
-    
     def __init__(self, config):
         """ Initialises the variable holding the list of lines in the generated LP file """
         self.LP = []
@@ -120,39 +111,33 @@ class LP_File:
         self.LP.append(f'End')
 
     def generate_function(self):
-        
         return f'r'
     
     def generate_constraints(self):
         constraints = []
         
-        # Generate x variable constraints
         for (i, j) in self.config.paths.keys():
             x_list = [value[0] for value in self.config.paths[(i, j)]]
             h_k = self.config.demands[i-1][j-1]
             constraints.append(' + '.join(x_list) + f' = {h_k}')
-    
-        constraints.append(' ')        
+        constraints.append(' ')
         
-        # Generate u variables constraints
         for (i, j) in self.config.paths.keys():
             u_list = [value[1] for value in self.config.paths[(i, j)]]
             n_k = 2
             constraints.append(' + '.join(u_list) + f' = {n_k}')
-    
-        constraints.append(' ')       
+        constraints.append(' ')
         
-        # Generate flow equality constraints
+        
+        
         for (i, j) in self.config.paths.keys():
             x_list = [value[0] for value in self.config.paths[(i, j)]]
             u_list = [value[1] for value in self.config.paths[(i, j)]]
             for index in range(len(x_list)):
                 rhs = int(self.config.demands[i-1][j-1]) / 2
                 constraints.append(f'{x_list[index]} - {rhs} {u_list[index]} = 0')
-        
         constraints.append(' ')
         
-        # TEST
         for (i, j) in self.config.paths.keys():
             x_list = [value[0] for value in self.config.paths[(i, j)]]
             u_list = [value[1] for value in self.config.paths[(i, j)]]
@@ -160,11 +145,8 @@ class LP_File:
             for index in range(len(x_list)):
                 con_list.append(f'{x_list[index]} {u_list[index]}')
             constraints.append(' + '.join(con_list) + f' = {self.config.demands[i-1][j-1]}')
-        # TEST
-
         constraints.append(' ')
         
-        # Generate c capacity constraints
         for (i, j) in self.config.paths.keys():
             x_list = [value[0] for value in self.config.paths[(i, j)]]
             u_list = [value[1] for value in self.config.paths[(i, j)]]
@@ -172,10 +154,8 @@ class LP_File:
             for index in range(len(x_list)):
                 con_list.append(f'{x_list[index]} {u_list[index]}')
             constraints.append(' + '.join(con_list) + f' - r <= 0')
-        
         constraints.append(' ')
         
-        # Generate d capacity constraints
         for (k, j) in self.config.d_links.keys():
             x_list = [value[0] for value in self.config.d_links[(k, j)]]
             u_list = [value[1] for value in self.config.d_links[(k, j)]]
@@ -183,53 +163,37 @@ class LP_File:
             for index in range(len(x_list)):
                 con_list.append(f'{x_list[index]} {u_list[index]}')
             constraints.append(' + '.join(con_list) + f' - r <= 0')
-        
         constraints.append(' ')
-        
         return constraints
     
     def generate_bounds(self):
         bounds = []
         for x_dec_var in self.config.x_var_list:
             bounds.append(f'{x_dec_var} >= 0')
-    
-        #for u_dec_var in self.config.u_var_list:
-            #bounds.append(f'{u_dec_var} = {"{0, 1}"}')
-        
         bounds.append(f'r >= 0')
         return bounds
     
+    
+    
+    
     def generate_binaries(self):
-        binaries = []
+        binaries = ""
         for u_dec_var in self.config.u_var_list:
-            binaries.append(f'{u_dec_var}')
-        return binaries
-        
+            binaries += f'{u_dec_var} '
+        return [binaries[:-1]]
     
 def main():
     """ Starts the program and runs support scripts """
     config = Config()
     print(f'\nInputs Accepted:\n    {config}\n')
-    
-    # Generate a table of demand volumes
     config.demands()
-    
-    # Call LP file generation function here
     LP = LP_File(config)
-    
     function = LP.generate_function()
     constraints = LP.generate_constraints()
     bounds = LP.generate_bounds()
     binaries = LP.generate_binaries()
-    
-    #function = f'5 x12 + 12 x132' # Debug Variable
-    #constraints = ['demandflow: x12 + x132 = 17', 'capp1: x12 <= 10', 'capp2: x132 <= 12'] # Debug Variable
-    #bounds = ['0 <= x12', '0 <= x132'] # Debug Variable
-    
     LP.generate_LP(function, constraints, bounds, binaries)
-    
     print(f'LP file is:\n{LP if LP else "    EMPTY LP FILE"}')
-    
     done = 0
     while not done:
         try:
@@ -240,5 +204,4 @@ def main():
         except:
             print(f'LP file failed to write, trying again...')
             time.sleep(1)
-
 main()
