@@ -133,19 +133,17 @@ class LP_File:
         
         for (i, j) in self.config.paths.keys():
             x_list = [value[0] for value in self.config.paths[(i, j)]]
-            u_list = [value[1] for value in self.config.paths[(i, j)]]
             con_list = []
             for index in range(len(x_list)):
-                con_list.append(f'{x_list[index]} {u_list[index]}')
+                con_list.append(f'{x_list[index]}')
             constraints.append(' + '.join(con_list) + f' = {self.config.demand_volumes[i-1][j-1]}')
         constraints.append(' ')
         
         for (k) in self.config.paths_per_node.keys():
             x_list = [value[0] for value in self.config.paths_per_node[(k)]]
-            u_list = [value[1] for value in self.config.paths_per_node[(k)]]
             con_list = []
             for index in range(len(x_list)):
-                con_list.append(f'{x_list[index]} {u_list[index]}')
+                con_list.append(f'{x_list[index]}')
             constraints.append(' + '.join(con_list) + f' - r <= 0')
         constraints.append(' ')
         return constraints
