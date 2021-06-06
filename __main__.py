@@ -147,9 +147,9 @@ class LP_File:
             constraints.append(' + '.join(con_list) + f' = {self.config.demands[i-1][j-1]}')
         constraints.append(' ')
         
-        for (i, j) in self.config.paths.keys():
-            x_list = [value[0] for value in self.config.paths[(i, j)]]
-            u_list = [value[1] for value in self.config.paths[(i, j)]]
+        for (i, k) in self.config.c_links.keys():
+            x_list = [value[0] for value in self.config.c_links[(i, k)]]
+            u_list = [value[1] for value in self.config.c_links[(i, k)]]
             con_list = []
             for index in range(len(x_list)):
                 con_list.append(f'{x_list[index]} {u_list[index]}')
